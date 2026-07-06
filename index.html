@@ -9,10 +9,13 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
+            background-color: #0d1b3e; /* matches SVG background, hides letterbox bars */
         }
         #atlas-svg {
             width: 100%;
             height: 100%;
+            display: block;
+            background-color: #0d1b3e; /* matches SVG background, hides letterbox bars */
         }
     </style>
 </head>
@@ -20,7 +23,6 @@
 <object id="atlas-svg" type="image/svg+xml" data="atlas.svg">
     Your browser does not support SVGs
 </object>
-
 <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 <script>
     var svgObject = document.getElementById('atlas-svg');
