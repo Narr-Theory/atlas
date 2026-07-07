@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Atlas</title>
     <style>
         html, body {
@@ -26,8 +27,22 @@
 <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 <script>
     var svgObject = document.getElementById('atlas-svg');
-    svgObject.addEventListener('load', function() {
-        svgPanZoom(svgObject, {
+    var panZoomInstance = null;
+
+    function alignTop() {
+        if (!panZoomInstance) return;
+        var sizes = panZoomInstance.getSizes();
+        var contentHeight = sizes.viewBox.height * sizes.realZoom;
+        var offsetY = (sizes.height - contentHeight) / 2;
+
+        if (offsetY > 0) {
+            var currentPan = panZoomInstance.getPan();
+            panZoomInstance.pan({ x: currentPan.x, y: currentPan.y - offsetY });
+        }
+    }
+
+    function initPanZoom() {
+        panZoomInstance = svgPanZoom(svgObject, {
             zoomEnabled: true,
             controlIconsEnabled: true,
             fit: true,
@@ -35,6 +50,17 @@
             minZoom: 0.5,
             maxZoom: 20
         });
+        alignTop();
+    }
+
+    svgObject.addEventListener('load', initPanZoom);
+
+    window.addEventListener('resize', function() {
+        if (!panZoomInstance) return;
+        panZoomInstance.resize();
+        panZoomInstance.fit();
+        panZoomInstance.center();
+        alignTop();
     });
 </script>
 </body>
