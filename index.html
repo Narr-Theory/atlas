@@ -29,6 +29,9 @@
     var svgObject = document.getElementById('atlas-svg');
     var panZoomInstance = null;
 
+    var CONFIGURED_MAX_ZOOM = 20;
+    var NODE_ZOOM_LEVEL = 3;
+
     function alignTop() {
         if (!panZoomInstance) return;
         var sizes = panZoomInstance.getSizes();
@@ -40,17 +43,11 @@
         }
     }
 
-    // Correctly computes an element's bounding box in ROOT SVG coordinates,
-    // accounting for all ancestor transforms (unlike raw getBBox()).
     function getGlobalBBox(el, svgRoot) {
         var bbox = el.getBBox();
         var ctm = el.getCTM();
 
-        console.log('Atlas debug: raw local bbox =', JSON.stringify(bbox));
-        console.log('Atlas debug: CTM =', ctm ? [ctm.a, ctm.b, ctm.c, ctm.d, ctm.e, ctm.f].join(', ') : 'null');
-
         if (!ctm) {
-            console.warn('Atlas: getCTM() returned null, falling back to raw bbox (may be inaccurate)');
             return bbox;
         }
 
@@ -74,25 +71,15 @@
         var minY = Math.min.apply(null, ys);
         var maxY = Math.max.apply(null, ys);
 
-        var globalBBox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-        console.log('Atlas debug: computed global bbox =', JSON.stringify(globalBBox));
-        return globalBBox;
+        return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
     }
 
     function goToNode(nodeId) {
         var svgDoc = svgObject.contentDocument;
-        if (!svgDoc) {
-            console.warn('Atlas: could not access SVG document (contentDocument is null)');
-            return;
-        }
+        if (!svgDoc) return;
 
         var target = svgDoc.getElementById(nodeId);
-        if (!target) {
-            console.warn('Atlas: node not found:', nodeId);
-            return;
-        }
-
-        console.log('Atlas: found node, navigating to', nodeId);
+        if (!target) return;
 
         var svgRoot = svgDoc.documentElement;
         var bbox = getGlobalBBox(target, svgRoot);
@@ -100,17 +87,12 @@
         var cx = bbox.x + bbox.width / 2;
         var cy = bbox.y + bbox.height / 2;
 
-        var sizes = panZoomInstance.getSizes();
-        var desiredZoom = 3;
-        var zoom = Math.min(desiredZoom, sizes.zoom.max);
-
+        var zoom = Math.min(NODE_ZOOM_LEVEL, CONFIGURED_MAX_ZOOM);
         panZoomInstance.zoom(zoom);
 
         var newSizes = panZoomInstance.getSizes();
         var panX = newSizes.width / 2 - cx * newSizes.realZoom;
         var panY = newSizes.height / 2 - cy * newSizes.realZoom;
-
-        console.log('Atlas debug: target center (cx,cy) =', cx, cy, '| pan target =', panX, panY);
 
         panZoomInstance.pan({ x: panX, y: panY });
 
@@ -145,12 +127,11 @@
             fit: true,
             center: true,
             minZoom: 0.5,
-            maxZoom: 20
+            maxZoom: CONFIGURED_MAX_ZOOM
         });
 
         var hash = window.location.hash.replace('#', '');
         if (hash) {
-            console.log('Atlas: hash detected on load:', hash);
             setTimeout(function() {
                 goToNode(hash);
             }, 100);
