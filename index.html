@@ -34,11 +34,64 @@
         var sizes = panZoomInstance.getSizes();
         var contentHeight = sizes.viewBox.height * sizes.realZoom;
         var offsetY = (sizes.height - contentHeight) / 2;
-
         if (offsetY > 0) {
             var currentPan = panZoomInstance.getPan();
             panZoomInstance.pan({ x: currentPan.x, y: currentPan.y - offsetY });
         }
+    }
+
+    function goToNode(nodeId) {
+        var svgDoc = svgObject.contentDocument;
+        if (!svgDoc) {
+            console.warn('Atlas: could not access SVG document (contentDocument is null)');
+            return;
+        }
+
+        var target = svgDoc.getElementById(nodeId);
+        if (!target) {
+            console.warn('Atlas: node not found:', nodeId);
+            return;
+        }
+
+        console.log('Atlas: found node, navigating to', nodeId);
+
+        var bbox = target.getBBox();
+        var cx = bbox.x + bbox.width / 2;
+        var cy = bbox.y + bbox.height / 2;
+
+        var sizes = panZoomInstance.getSizes();
+        var desiredZoom = 3;
+        var zoom = Math.min(desiredZoom, sizes.zoom.max);
+
+        panZoomInstance.zoom(zoom);
+
+        var newSizes = panZoomInstance.getSizes();
+        var panX = newSizes.width / 2 - cx * newSizes.realZoom;
+        var panY = newSizes.height / 2 - cy * newSizes.realZoom;
+        panZoomInstance.pan({ x: panX, y: panY });
+
+        highlightNode(target);
+    }
+
+    function highlightNode(target) {
+        var original = target.getAttribute('stroke');
+        var originalWidth = target.getAttribute('stroke-width');
+
+        target.setAttribute('stroke', '#FFD700');
+        target.setAttribute('stroke-width', '4');
+
+        setTimeout(function() {
+            if (original !== null) {
+                target.setAttribute('stroke', original);
+            } else {
+                target.removeAttribute('stroke');
+            }
+            if (originalWidth !== null) {
+                target.setAttribute('stroke-width', originalWidth);
+            } else {
+                target.removeAttribute('stroke-width');
+            }
+        }, 2500);
     }
 
     function initPanZoom() {
@@ -50,7 +103,16 @@
             minZoom: 0.5,
             maxZoom: 20
         });
-        alignTop();
+
+        var hash = window.location.hash.replace('#', '');
+        if (hash) {
+            console.log('Atlas: hash detected on load:', hash);
+            setTimeout(function() {
+                goToNode(hash);
+            }, 100);
+        } else {
+            alignTop();
+        }
     }
 
     svgObject.addEventListener('load', initPanZoom);
@@ -61,6 +123,11 @@
         panZoomInstance.fit();
         panZoomInstance.center();
         alignTop();
+    });
+
+    window.addEventListener('hashchange', function() {
+        var hash = window.location.hash.replace('#', '');
+        if (hash) goToNode(hash);
     });
 </script>
 </body>
